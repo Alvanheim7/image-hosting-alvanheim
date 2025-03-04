@@ -3,137 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Viewer</title>
+    <title>Image Hosting Directory</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f0f2f5;
             line-height: 1.6;
-        }
-
-        .container {
-            text-align: center;
-            max-width: 90%;
-            width: 100%;
+            margin: 0;
             padding: 20px;
-        }
-
-        .image-container {
-            max-width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .image-container img {
-            max-width: 100%;
-            max-height: 90vh;
-            object-fit: contain;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }
-
-        .error-message {
-            background-color: #fff5f5;
-            border: 2px solid #ff6b6b;
-            color: #d63232;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 500px;
+            background-color: #f4f4f4;
+            max-width: 1200px;
             margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .directory-tree {
+            background-color: white;
+            border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
         }
 
-        .error-message h2 {
-            margin-top: 0;
-            color: #ff6b6b;
-            font-size: 1.5em;
-        }
-
-        .error-details {
-            background-color: #fff0f0;
-            border-radius: 5px;
+        .folder {
+            margin-bottom: 15px;
             padding: 10px;
-            margin-top: 15px;
-            word-break: break-all;
+            background-color: #f8f9fa;
+            border-radius: 5px;
         }
 
-        @media (max-width: 600px) {
-            .error-message {
-                width: 90%;
-                margin: 0 auto;
-                padding: 15px;
-            }
+        .folder-name {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .image-item {
+            position: relative;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .image-item:hover {
+            transform: scale(1.05);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .image-details {
+            padding: 10px;
+            background-color: white;
+        }
+
+        .copy-url {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .copy-url:hover {
+            background-color: #0056b3;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 140px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -75px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="imageContainer" class="image-container"></div>
+    <h1>Image Hosting Directory</h1>
+    <div class="directory-tree" id="directoryTree">
+        <!-- Directory structure will be dynamically populated here -->
     </div>
 
     <script>
-        function displayImage() {
-            const imageContainer = document.getElementById('imageContainer');
+        // Configuration - Replace these with your actual GitHub repository details
+        const GITHUB_USERNAME = 'YOUR_USERNAME';
+        const GITHUB_REPO = 'YOUR_REPOSITORY';
+        const BRANCH = 'main'; // or 'master' depending on your repository
+
+        // Function to fetch repository contents
+        async function fetchRepositoryContents(path = '') {
+            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
             
-            // Get the path from the URL
-            const pathParam = new URLSearchParams(window.location.search).get('path');
-            
-            if (pathParam) {
-                // Construct the GitHub raw content URL
-                // Replace 'USERNAME' and 'REPOSITORY' with your actual GitHub username and repository name
-                const imageUrl = `https://raw.githubusercontent.com/USERNAME/REPOSITORY/main/${pathParam}`;
-                
-                // Create an image element
-                const img = document.createElement('img');
-                img.src = imageUrl;
-                img.alt = 'Hosted Image';
-                
-                // Add error handling
-                img.onerror = function() {
-                    imageContainer.innerHTML = `
-                        <div class="error-message">
-                            <h2>Image Not Found</h2>
-                            <p>Unable to load the requested image.</p>
-                            <div class="error-details">
-                                <strong>Attempted Path:</strong> ${pathParam}
-                            </div>
-                            <p>Please check:</p>
-                            <ul>
-                                <li>Correct repository name</li>
-                                <li>Correct file path</li>
-                                <li>Image exists in the repository</li>
-                                <li>Repository is public</li>
-                            </ul>
-                        </div>
-                    `;
-                };
-                
-                // Append to container
-                imageContainer.appendChild(img);
-            } else {
-                imageContainer.innerHTML = `
-                    <div class="error-message">
-                        <h2>No Image Specified</h2>
-                        <p>Please provide an image path using the query parameter.</p>
-                        <div class="error-details">
-                            <strong>Example:</strong> 
-                            ?path=path/to/your/image.png
-                        </div>
-                    </div>
-                `;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching repository contents:', error);
+                return [];
             }
         }
 
-        // Call the function when the page loads
-        window.onload = displayImage;
+        // Function to check if a file is an image
+        function isImageFile(filename) {
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+            const ext = filename.split('.').pop().toLowerCase();
+            return imageExtensions.includes(ext);
+        }
+
+        // Function to create URL for raw GitHub content
+        function createRawUrl(path) {
+            return `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${BRANCH}/${path}`;
+        }
+
+        // Function to create URL for viewing page
+        function createViewUrl(path) {
+            return `?url=${encodeURIComponent(createRawUrl(path))}`;
+        }
+
+        // Function to render directory structure
+        async function renderDirectory(path = '') {
+            const directoryTree = document.getElementById('directoryTree');
+            const contents = await fetchRepositoryContents(path);
+
+            // Separate folders and images
+            const folders = contents.filter(item => item.type === 'dir');
+            const images = contents.filter(item => item.type === 'file' && isImageFile(item.name));
+
+            // Create folder sections
+            for (const folder of folders) {
+                const folderSection = document.createElement('div');
+                folderSection.className = 'folder';
+                
+                const folderName = document.createElement('div');
+                folderName.className = 'folder-name';
+                folderName.textContent = folder.name;
+                folderSection.appendChild(folderName);
+
+                const imageGrid = document.createElement('div');
+                imageGrid.className = 'image-grid';
+
+                // Fetch and render images in this folder
+                const folderContents = await fetchRepositoryContents(folder.path);
+                const folderImages = folderContents.filter(item => item.type === 'file' && isImageFile(item.name));
+
+                for (const image of folderImages) {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item';
+
+                    const img = document.createElement('img');
+                    img.src = createRawUrl(image.path);
+                    img.alt = image.name;
+
+                    const imageDetails = document.createElement('div');
+                    imageDetails.className = 'image-details';
+
+                    const imageName = document.createElement('div');
+                    imageName.textContent = image.name;
+
+                    const copyUrlButton = document.createElement('button');
+                    copyUrlButton.className = 'copy-url tooltip';
+                    copyUrlButton.textContent = 'Copy URL';
+                    
+                    const tooltipSpan = document.createElement('span');
+                    tooltipSpan.className = 'tooltiptext';
+                    tooltipSpan.textContent = 'URL Copied!';
+                    
+                    copyUrlButton.appendChild(tooltipSpan);
+
+                    copyUrlButton.addEventListener('click', () => {
+                        const rawUrl = createRawUrl(image.path);
+                        navigator.clipboard.writeText(rawUrl).then(() => {
+                            copyUrlButton.querySelector('.tooltiptext').textContent = 'URL Copied!';
+                            setTimeout(() => {
+                                copyUrlButton.querySelector('.tooltiptext').textContent = 'Copy URL';
+                            }, 2000);
+                        });
+                    });
+
+                    imageDetails.appendChild(imageName);
+                    imageDetails.appendChild(copyUrlButton);
+
+                    imageItem.appendChild(img);
+                    imageItem.appendChild(imageDetails);
+                    imageGrid.appendChild(imageItem);
+                }
+
+                folderSection.appendChild(imageGrid);
+                directoryTree.appendChild(folderSection);
+            }
+
+            // Render images in the current path
+            if (images.length > 0) {
+                const currentPathSection = document.createElement('div');
+                currentPathSection.className = 'folder';
+                
+                const folderName = document.createElement('div');
+                folderName.className = 'folder-name';
+                folderName.textContent = path || 'Root Directory';
+                currentPathSection.appendChild(folderName);
+
+                const imageGrid = document.createElement('div');
+                imageGrid.className = 'image-grid';
+
+                for (const image of images) {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item';
+
+                    const img = document.createElement('img');
+                    img.src = createRawUrl(image.path);
+                    img.alt = image.name;
+
+                    const imageDetails = document.createElement('div');
+                    imageDetails.className = 'image-details';
+
+                    const imageName = document.createElement('div');
+                    imageName.textContent = image.name;
+
+                    const copyUrlButton = document.createElement('button');
+                    copyUrlButton.className = 'copy-url tooltip';
+                    copyUrlButton.textContent = 'Copy URL';
+                    
+                    const tooltipSpan = document.createElement('span');
+                    tooltipSpan.className = 'tooltiptext';
+                    tooltipSpan.textContent = 'URL Copied!';
+                    
+                    copyUrlButton.appendChild(tooltipSpan);
+
+                    copyUrlButton.addEventListener('click', () => {
+                        const rawUrl = createRawUrl(image.path);
+                        navigator.clipboard.writeText(rawUrl).then(() => {
+                            copyUrlButton.querySelector('.tooltiptext').textContent = 'URL Copied!';
+                            setTimeout(() => {
+                                copyUrlButton.querySelector('.tooltiptext').textContent = 'Copy URL';
+                            }, 2000);
+                        });
+                    });
+
+                    imageDetails.appendChild(imageName);
+                    imageDetails.appendChild(copyUrlButton);
+
+                    imageItem.appendChild(img);
+                    imageItem.appendChild(imageDetails);
+                    imageGrid.appendChild(imageItem);
+                }
+
+                currentPathSection.appendChild(imageGrid);
+                directoryTree.appendChild(currentPathSection);
+            }
+        }
+
+        // Initialize the page
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlParam = urlParams.get('url');
+
+            if (urlParam) {
+                // If a specific URL is provided, show that image
+                const imageContainer = document.getElementById('directoryTree');
+                imageContainer.innerHTML = `
+                    <div style="text-align: center;">
+                        <img src="${urlParam}" style="max-width: 100%; max-height: 80vh; object-fit: contain;">
+                        <div style="margin-top: 10px;">
+                            <button onclick="window.history.back()" style="padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                Back to Directory
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Otherwise, render the directory
+                renderDirectory();
+            }
+        };
     </script>
 </body>
 </html>
