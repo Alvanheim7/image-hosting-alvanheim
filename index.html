@@ -3,79 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Hosting Directory</title>
+    <title>Alvanheim Image Gallery</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: 'Arial', sans-serif;
             line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-            max-width: 1400px;
-            margin: 0 auto;
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
 
-        h1 {
-            text-align: center;
-            color: #333;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.5em;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: #f1f3f5;
+            border-radius: 25px;
+            padding: 10px 15px;
+            flex-grow: 1;
+            max-width: 400px;
+            margin: 0 20px;
+        }
+
+        .search-bar input {
+            border: none;
+            background: transparent;
+            width: 100%;
+            outline: none;
+            margin-left: 10px;
         }
 
         .directory-tree {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
         }
 
         .folder {
-            margin-bottom: 15px;
-            border-radius: 5px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
             overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .folder:hover {
+            transform: translateY(-5px);
         }
 
         .folder-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            background-color: #f8f9fa;
-            padding: 10px;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
             cursor: pointer;
-            transition: background-color 0.3s ease;
         }
 
-        .folder-header:hover {
-            background-color: #e9ecef;
-        }
-
-        .folder-name {
-            flex-grow: 1;
-            font-weight: bold;
-            color: #007bff;
-        }
-
-        .toggle-icon {
-            margin-right: 10px;
+        .folder-header i {
             transition: transform 0.3s ease;
+        }
+
+        .folder-header.active i {
+            transform: rotate(90deg);
         }
 
         .folder-content {
             display: none;
-            padding: 10px;
-            background-color: #ffffff;
+            padding: 15px;
         }
 
         .image-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
         }
 
         .image-item {
             position: relative;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 8px;
             overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: transform 0.3s ease;
         }
 
@@ -85,205 +136,207 @@
 
         .image-item img {
             width: 100%;
-            height: 120px;
+            height: 200px;
             object-fit: cover;
         }
 
-        .image-details {
-            padding: 5px;
-            background-color: white;
+        .image-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.8em;
-        }
-
-        .copy-url {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 3px 6px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 120px;
-            background-color: #555;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -60px;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.3s ease;
         }
 
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
+        .image-item:hover .image-overlay {
             opacity: 1;
         }
 
-        .count {
-            background-color: #007bff;
+        .copy-btn {
+            background-color: var(--secondary-color);
             color: white;
-            border-radius: 50%;
-            padding: 2px 8px;
-            margin-left: 10px;
-            font-size: 0.8em;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
-        @media (max-width: 600px) {
-            .image-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .modal-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+
+        .close-modal {
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            top: 15px;
+            right: 35px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            color: #3498db;
         }
     </style>
 </head>
 <body>
-    <h1>Image Hosting Directory</h1>
-    <div class="directory-tree" id="directoryTree">
-        <!-- Directory structure will be dynamically populated here -->
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-image"></i>
+                Alvanheim Gallery
+            </div>
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search images..." id="searchInput">
+            </div>
+        </div>
+        <div id="loading" class="loading">Loading images...</div>
+        <div class="directory-tree" id="directoryTree" style="display:none;">
+            <!-- Dynamic content will be populated here -->
+        </div>
+    </div>
+
+    <div id="imageModal" class="modal">
+        <span class="close-modal">&times;</span>
+        <div class="modal-content">
+            <img id="modalImage" src="" alt="Full Image">
+        </div>
     </div>
 
     <script>
-        // Configuration - Replace these with your actual GitHub repository details
+        // Configuration
         const GITHUB_USERNAME = 'Alvanheim';
         const GITHUB_REPO = 'image-hosting-alvanheim';
-        const BRANCH = 'main'; // or 'master' depending on your repository
+        const BRANCH = 'main';
 
-        // Recursive function to fetch all contents including nested folders
-        async function fetchAllRepositoryContents(path = '', contents = []) {
+        // Fetch repository contents recursively
+        async function fetchAllRepositoryContents(path = '') {
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
             
             try {
                 const response = await fetch(apiUrl);
+                
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-                const currentContents = await response.json();
+                
+                const contents = await response.json();
+                let allImages = [];
 
-                // Process each item
-                for (const item of currentContents) {
+                for (const item of contents) {
                     if (item.type === 'dir') {
-                        // Recursively fetch contents of nested folders
-                        await fetchAllRepositoryContents(item.path, contents);
-                    } else {
-                        contents.push(item);
+                        const subImages = await fetchAllRepositoryContents(item.path);
+                        allImages = allImages.concat(subImages);
+                    } else if (isImageFile(item.name)) {
+                        allImages.push(item);
                     }
                 }
 
-                return contents;
+                return allImages;
             } catch (error) {
-                console.error('Error fetching repository contents:', error);
-                return contents;
+                console.error('Fetch error:', error);
+                return [];
             }
         }
 
-        // Function to check if a file is an image
+        // Check if file is an image
         function isImageFile(filename) {
             const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-            const ext = filename.split('.').pop().toLowerCase();
-            return imageExtensions.includes(ext);
+            return imageExtensions.includes(filename.split('.').pop().toLowerCase());
         }
 
-        // Function to create URL for raw GitHub content
+        // Create raw GitHub URL for image
         function createRawUrl(path) {
             return `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${BRANCH}/${path}`;
         }
 
-        // Function to organize images into folder structure
+        // Organize images into folder structure
         function organizeImagesByFolders(images) {
             const folderStructure = {};
 
             images.forEach(image => {
-                if (isImageFile(image.name)) {
-                    // Split the path into parts
-                    const pathParts = image.path.split('/');
-                    
-                    // Build nested folder structure
-                    let currentLevel = folderStructure;
-                    pathParts.forEach((part, index) => {
-                        // If it's the last part (the image name), add to images
-                        if (index === pathParts.length - 1) {
-                            if (!currentLevel._images) {
-                                currentLevel._images = [];
-                            }
-                            currentLevel._images.push(image);
-                        } else {
-                            // Create folder if it doesn't exist
-                            if (!currentLevel[part]) {
-                                currentLevel[part] = {};
-                            }
-                            currentLevel = currentLevel[part];
+                const pathParts = image.path.split('/');
+                
+                let currentFolder = folderStructure;
+                pathParts.forEach((part, index) => {
+                    if (index === pathParts.length - 1) {
+                        const folderPath = pathParts.slice(0, -1).join('/') || 'Root';
+                        if (!currentFolder[folderPath]) {
+                            currentFolder[folderPath] = { images: [] };
                         }
-                    });
-                }
+                        currentFolder[folderPath].images.push(image);
+                    } else {
+                        if (!currentFolder[part]) {
+                            currentFolder[part] = {};
+                        }
+                        currentFolder = currentFolder[part];
+                    }
+                });
             });
 
             return folderStructure;
         }
 
-        // Recursive function to render folder structure
-        function renderFolderStructure(folderStructure, depth = 0) {
+        // Render folder structure with images
+        function renderFolderStructure(folderStructure) {
             const directoryTree = document.getElementById('directoryTree');
-            
-            // Iterate through folders and images
-            Object.keys(folderStructure).forEach(key => {
-                // Skip the special _images key
-                if (key === '_images') return;
+            directoryTree.innerHTML = '';
 
-                const folder = folderStructure[key];
-                
-                // Create folder section
-                const folderSection = document.createElement('div');
-                folderSection.className = 'folder';
-                
-                // Folder Header
+            function createFolderElement(folderName, folder) {
+                const folderElement = document.createElement('div');
+                folderElement.className = 'folder';
+
                 const folderHeader = document.createElement('div');
                 folderHeader.className = 'folder-header';
+                folderHeader.innerHTML = `
+                    <span>${folderName}</span>
+                    <i class="fas fa-chevron-right"></i>
+                `;
 
-                // Toggle Icon
-                const toggleIcon = document.createElement('span');
-                toggleIcon.className = 'toggle-icon';
-                toggleIcon.innerHTML = '▶';
-
-                // Folder Name
-                const folderName = document.createElement('div');
-                folderName.className = 'folder-name';
-                folderName.textContent = key;
-
-                // Image Count (if any)
-                const folderImages = folder._images || [];
-                const imageCount = document.createElement('span');
-                imageCount.className = 'count';
-                imageCount.textContent = folderImages.length;
-
-                // Assemble folder header
-                folderHeader.appendChild(toggleIcon);
-                folderHeader.appendChild(folderName);
-                folderHeader.appendChild(imageCount);
-
-                // Folder Content
                 const folderContent = document.createElement('div');
                 folderContent.className = 'folder-content';
 
                 const imageGrid = document.createElement('div');
                 imageGrid.className = 'image-grid';
 
-                // Render images in this folder
-                folderImages.forEach(image => {
+                // Add images to the grid
+                const images = folder.images || [];
+                images.forEach(image => {
                     const imageItem = document.createElement('div');
                     imageItem.className = 'image-item';
 
@@ -291,99 +344,113 @@
                     img.src = createRawUrl(image.path);
                     img.alt = image.name;
 
-                    const imageDetails = document.createElement('div');
-                    imageDetails.className = 'image-details';
+                    const imageOverlay = document.createElement('div');
+                    imageOverlay.className = 'image-overlay';
 
-                    const imageName = document.createElement('div');
+                    const imageName = document.createElement('span');
                     imageName.textContent = image.name;
 
-                    const copyUrlButton = document.createElement('button');
-                    copyUrlButton.className = 'copy-url tooltip';
-                    copyUrlButton.textContent = 'Copy';
-                    
-                    const tooltipSpan = document.createElement('span');
-                    tooltipSpan.className = 'tooltiptext';
-                    tooltipSpan.textContent = 'URL Copied!';
-                    
-                    copyUrlButton.appendChild(tooltipSpan);
-
-                    copyUrlButton.addEventListener('click', () => {
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-btn';
+                    copyBtn.textContent = 'Copy URL';
+                    copyBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         const rawUrl = createRawUrl(image.path);
-                        navigator.clipboard.writeText(rawUrl).then(() => {
-                            copyUrlButton.querySelector('.tooltiptext').textContent = 'URL Copied!';
-                            setTimeout(() => {
-                                copyUrlButton.querySelector('.tooltiptext').textContent = 'Copy';
-                            }, 2000);
-                        });
+                        navigator.clipboard.writeText(rawUrl);
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(() => copyBtn.textContent = 'Copy URL', 2000);
                     });
 
-                    imageDetails.appendChild(imageName);
-                    imageDetails.appendChild(copyUrlButton);
+                    imageOverlay.appendChild(imageName);
+                    imageOverlay.appendChild(copyBtn);
 
                     imageItem.appendChild(img);
-                    imageItem.appendChild(imageDetails);
+                    imageItem.appendChild(imageOverlay);
+
+                    // Full image view on click
+                    imageItem.addEventListener('click', () => {
+                        const modal = document.getElementById('imageModal');
+                        const modalImage = document.getElementById('modalImage');
+                        modalImage.src = createRawUrl(image.path);
+                        modal.style.display = 'flex';
+                    });
+
                     imageGrid.appendChild(imageItem);
                 });
 
-                // Render nested folders recursively
-                const nestedFolders = Object.keys(folder)
-                    .filter(k => k !== '_images')
-                    .reduce((obj, key) => {
-                        obj[key] = folder[key];
-                        return obj;
-                    }, {});
-
-                if (Object.keys(nestedFolders).length > 0) {
-                    const nestedFolderSection = renderFolderStructure(nestedFolders, depth + 1);
-                    folderContent.appendChild(nestedFolderSection);
-                }
-
-                // Toggle functionality
+                // Folder toggle functionality
                 folderHeader.addEventListener('click', () => {
-                    const isOpen = folderContent.style.display === 'block';
-                    folderContent.style.display = isOpen ? 'none' : 'block';
-                    toggleIcon.innerHTML = isOpen ? '▶' : '▼';
+                    folderHeader.classList.toggle('active');
+                    folderContent.style.display = 
+                        folderContent.style.display === 'block' ? 'none' : 'block';
                 });
 
                 folderContent.appendChild(imageGrid);
-                folderSection.appendChild(folderHeader);
-                folderSection.appendChild(folderContent);
-                
-                if (depth === 0) {
-                    directoryTree.appendChild(folderSection);
-                }
+                folderElement.appendChild(folderHeader);
+                folderElement.appendChild(folderContent);
 
-                return folderSection;
+                return folderElement;
+            }
+
+            // Render folders and their images
+            Object.entries(folderStructure).forEach(([folderName, folder]) => {
+                if (folder.images && folder.images.length > 0) {
+                    const folderElement = createFolderElement(folderName, folder);
+                    directoryTree.appendChild(folderElement);
+                }
             });
         }
 
+        // Search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const imageItems = document.querySelectorAll('.image-item');
+
+                imageItems.forEach(item => {
+                    const imageName = item.querySelector('.image-overlay span').textContent.toLowerCase();
+                    item.style.display = imageName.includes(searchTerm) ? 'block' : 'none';
+                });
+            });
+        }
+
+        // Close modal functionality
+        document.querySelector('.close-modal').addEventListener('click', () => {
+            document.getElementById('imageModal').style.display = 'none';
+        });
+
         // Initialize the page
         window.onload = async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlParam = urlParams.get('url');
+            try {
+                const loadingElement = document.getElementById('loading');
+                const directoryTree = document.getElementById('directoryTree');
 
-            if (urlParam) {
-                // If a specific URL is provided, show that image
-                const imageContainer = document.getElementById('directoryTree');
-                imageContainer.innerHTML = `
-                    <div style="text-align: center;">
-                        <img src="${urlParam}" style="max-width: 100%; max-height: 80vh; object-fit: contain;">
-                        <div style="margin-top: 10px;">
-                            <button onclick="window.history.back()" style="padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                                Back to Directory
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // Fetch all repository contents recursively
-                const allContents = await fetchAllRepositoryContents();
+                // Fetch all images
+                const allImages = await fetchAllRepositoryContents();
                 
+                if (allImages.length === 0) {
+                    loadingElement.textContent = 'No images found in the repository.';
+                    return;
+                }
+
                 // Organize images into folder structure
-                const imagesByFolders = organizeImagesByFolders(allContents);
-                
-                // Render the folder structure
+                const imagesByFolders = organizeImagesByFolders(allImages);
+
+                // Hide loading, show directory
+                loadingElement.style.display = 'none';
+                directoryTree.style.display = 'grid';
+
+                // Render images
                 renderFolderStructure(imagesByFolders);
+                
+                // Setup search
+                setupSearch();
+
+            } catch (error) {
+                const loadingElement = document.getElementById('loading');
+                loadingElement.textContent = 'Error loading images. Please try again.';
+                console.error('Initialization error:', error);
             }
         };
     </script>
