@@ -143,6 +143,12 @@
             margin-left: 10px;
             font-size: 0.8em;
         }
+
+        @media (max-width: 600px) {
+            .image-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
     </style>
 </head>
 <body>
@@ -157,8 +163,8 @@
         const GITHUB_REPO = 'image-hosting-alvanheim';
         const BRANCH = 'main'; // or 'master' depending on your repository
 
-        // Function to fetch repository contents
-        async function fetchRepositoryContents(path = '') {
+        // Recursive function to fetch all contents including nested folders
+        async function fetchAllRepositoryContents(path = '', contents = []) {
             const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
             
             try {
@@ -166,10 +172,22 @@
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-                return await response.json();
+                const currentContents = await response.json();
+
+                // Process each item
+                for (const item of currentContents) {
+                    if (item.type === 'dir') {
+                        // Recursively fetch contents of nested folders
+                        await fetchAllRepositoryContents(item.path, contents);
+                    } else {
+                        contents.push(item);
+                    }
+                }
+
+                return contents;
             } catch (error) {
                 console.error('Error fetching repository contents:', error);
-                return [];
+                return contents;
             }
         }
 
@@ -185,22 +203,50 @@
             return `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${BRANCH}/${path}`;
         }
 
-        // Function to create URL for viewing page
-        function createViewUrl(path) {
-            return `?url=${encodeURIComponent(createRawUrl(path))}`;
+        // Function to organize images into folder structure
+        function organizeImagesByFolders(images) {
+            const folderStructure = {};
+
+            images.forEach(image => {
+                if (isImageFile(image.name)) {
+                    // Split the path into parts
+                    const pathParts = image.path.split('/');
+                    
+                    // Build nested folder structure
+                    let currentLevel = folderStructure;
+                    pathParts.forEach((part, index) => {
+                        // If it's the last part (the image name), add to images
+                        if (index === pathParts.length - 1) {
+                            if (!currentLevel._images) {
+                                currentLevel._images = [];
+                            }
+                            currentLevel._images.push(image);
+                        } else {
+                            // Create folder if it doesn't exist
+                            if (!currentLevel[part]) {
+                                currentLevel[part] = {};
+                            }
+                            currentLevel = currentLevel[part];
+                        }
+                    });
+                }
+            });
+
+            return folderStructure;
         }
 
-        // Function to render directory structure
-        async function renderDirectory(path = '') {
+        // Recursive function to render folder structure
+        function renderFolderStructure(folderStructure, depth = 0) {
             const directoryTree = document.getElementById('directoryTree');
-            const contents = await fetchRepositoryContents(path);
+            
+            // Iterate through folders and images
+            Object.keys(folderStructure).forEach(key => {
+                // Skip the special _images key
+                if (key === '_images') return;
 
-            // Separate folders and images
-            const folders = contents.filter(item => item.type === 'dir');
-            const images = contents.filter(item => item.type === 'file' && isImageFile(item.name));
-
-            // Create folder sections
-            for (const folder of folders) {
+                const folder = folderStructure[key];
+                
+                // Create folder section
                 const folderSection = document.createElement('div');
                 folderSection.className = 'folder';
                 
@@ -216,13 +262,10 @@
                 // Folder Name
                 const folderName = document.createElement('div');
                 folderName.className = 'folder-name';
-                folderName.textContent = folder.name;
+                folderName.textContent = key;
 
-                // Fetch images in this folder
-                const folderContents = await fetchRepositoryContents(folder.path);
-                const folderImages = folderContents.filter(item => item.type === 'file' && isImageFile(item.name));
-
-                // Image Count
+                // Image Count (if any)
+                const folderImages = folder._images || [];
                 const imageCount = document.createElement('span');
                 imageCount.className = 'count';
                 imageCount.textContent = folderImages.length;
@@ -240,7 +283,7 @@
                 imageGrid.className = 'image-grid';
 
                 // Render images in this folder
-                for (const image of folderImages) {
+                folderImages.forEach(image => {
                     const imageItem = document.createElement('div');
                     imageItem.className = 'image-item';
 
@@ -280,6 +323,19 @@
                     imageItem.appendChild(img);
                     imageItem.appendChild(imageDetails);
                     imageGrid.appendChild(imageItem);
+                });
+
+                // Render nested folders recursively
+                const nestedFolders = Object.keys(folder)
+                    .filter(k => k !== '_images')
+                    .reduce((obj, key) => {
+                        obj[key] = folder[key];
+                        return obj;
+                    }, {});
+
+                if (Object.keys(nestedFolders).length > 0) {
+                    const nestedFolderSection = renderFolderStructure(nestedFolders, depth + 1);
+                    folderContent.appendChild(nestedFolderSection);
                 }
 
                 // Toggle functionality
@@ -292,97 +348,17 @@
                 folderContent.appendChild(imageGrid);
                 folderSection.appendChild(folderHeader);
                 folderSection.appendChild(folderContent);
-                directoryTree.appendChild(folderSection);
-            }
-
-            // Render images in the current path
-            if (images.length > 0) {
-                const currentPathSection = document.createElement('div');
-                currentPathSection.className = 'folder';
                 
-                const folderHeader = document.createElement('div');
-                folderHeader.className = 'folder-header';
-
-                const toggleIcon = document.createElement('span');
-                toggleIcon.className = 'toggle-icon';
-                toggleIcon.innerHTML = '▶';
-
-                const folderName = document.createElement('div');
-                folderName.className = 'folder-name';
-                folderName.textContent = path || 'Root Directory';
-
-                const imageCount = document.createElement('span');
-                imageCount.className = 'count';
-                imageCount.textContent = images.length;
-
-                folderHeader.appendChild(toggleIcon);
-                folderHeader.appendChild(folderName);
-                folderHeader.appendChild(imageCount);
-
-                const folderContent = document.createElement('div');
-                folderContent.className = 'folder-content';
-
-                const imageGrid = document.createElement('div');
-                imageGrid.className = 'image-grid';
-
-                for (const image of images) {
-                    const imageItem = document.createElement('div');
-                    imageItem.className = 'image-item';
-
-                    const img = document.createElement('img');
-                    img.src = createRawUrl(image.path);
-                    img.alt = image.name;
-
-                    const imageDetails = document.createElement('div');
-                    imageDetails.className = 'image-details';
-
-                    const imageName = document.createElement('div');
-                    imageName.textContent = image.name;
-
-                    const copyUrlButton = document.createElement('button');
-                    copyUrlButton.className = 'copy-url tooltip';
-                    copyUrlButton.textContent = 'Copy';
-                    
-                    const tooltipSpan = document.createElement('span');
-                    tooltipSpan.className = 'tooltiptext';
-                    tooltipSpan.textContent = 'URL Copied!';
-                    
-                    copyUrlButton.appendChild(tooltipSpan);
-
-                    copyUrlButton.addEventListener('click', () => {
-                        const rawUrl = createRawUrl(image.path);
-                        navigator.clipboard.writeText(rawUrl).then(() => {
-                            copyUrlButton.querySelector('.tooltiptext').textContent = 'URL Copied!';
-                            setTimeout(() => {
-                                copyUrlButton.querySelector('.tooltiptext').textContent = 'Copy';
-                            }, 2000);
-                        });
-                    });
-
-                    imageDetails.appendChild(imageName);
-                    imageDetails.appendChild(copyUrlButton);
-
-                    imageItem.appendChild(img);
-                    imageItem.appendChild(imageDetails);
-                    imageGrid.appendChild(imageItem);
+                if (depth === 0) {
+                    directoryTree.appendChild(folderSection);
                 }
 
-                // Toggle functionality
-                folderHeader.addEventListener('click', () => {
-                    const isOpen = folderContent.style.display === 'block';
-                    folderContent.style.display = isOpen ? 'none' : 'block';
-                    toggleIcon.innerHTML = isOpen ? '▶' : '▼';
-                });
-
-                folderContent.appendChild(imageGrid);
-                currentPathSection.appendChild(folderHeader);
-                currentPathSection.appendChild(folderContent);
-                directoryTree.appendChild(currentPathSection);
-            }
+                return folderSection;
+            });
         }
 
         // Initialize the page
-        window.onload = () => {
+        window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const urlParam = urlParams.get('url');
 
@@ -400,8 +376,14 @@
                     </div>
                 `;
             } else {
-                // Otherwise, render the directory
-                renderDirectory();
+                // Fetch all repository contents recursively
+                const allContents = await fetchAllRepositoryContents();
+                
+                // Organize images into folder structure
+                const imagesByFolders = organizeImagesByFolders(allContents);
+                
+                // Render the folder structure
+                renderFolderStructure(imagesByFolders);
             }
         };
     </script>
